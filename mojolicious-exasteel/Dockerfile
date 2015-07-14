@@ -1,4 +1,4 @@
-FROM marcomusso/mojolicious:v1
+FROM marcomusso/mojolicious:v6.14
 MAINTAINER Marco Musso <github@marcomusso.it>
 
 RUN cpanm -f -n MongoDB Compress::Zlib
