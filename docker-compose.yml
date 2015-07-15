@@ -1,0 +1,10 @@
+web:
+  image: marcomusso/exasteel:v2
+  ports:
+    - "80:3000"
+  links:
+    - dbserver:dbserver
+dbserver:
+  image: marcomusso/mongodb:v2.6.6
+  volumes:
+    - ./mongodb/data:/data
