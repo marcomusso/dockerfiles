@@ -1,0 +1,40 @@
+---
+
+- hosts: docker-nodes
+  vars:
+    docker_port: 2375
+  remote_user: root
+
+  tasks:
+
+  #- name: add authorized_keys
+  #  authorized_key: user=root key=authorized_keys state=present
+
+  - name: yum update
+    yum: name=* state=latest
+
+  - name: Install some useful packages
+    yum: pkg={{ item }} state=latest
+    with_items:
+      - git
+      - etcd
+      - python-netaddr
+      - docker
+
+  - name: config docker
+    copy: src=etc/sysconfig/docker dest=/etc/sysconfig/docker force=yes
+    notify:
+    - restart docker
+
+  - name: enable docker at boot
+    service: name=docker enabled=yes
+
+  # the following steps are for test systems, consider tighter security for production use
+  - name: punch a hole in firewalld for port 2375
+    shell: firewall-cmd --zone=public --add-port=2375/tcp --permanent
+  - name: disable selinux
+    selinux: state=disabled
+
+  handlers:
+    - name: restart docker
+      service: name=docker state=restarted
