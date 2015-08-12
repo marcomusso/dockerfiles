@@ -3,6 +3,7 @@
 - hosts: docker-nodes
   vars:
     docker_port: 2375
+    #swarm_token: "YOUR_SWARM_TOKEN"
   remote_user: root
 
   tasks:
@@ -34,6 +35,11 @@
     shell: firewall-cmd --zone=public --add-port=2375/tcp --permanent
   - name: disable selinux
     selinux: state=disabled
+
+  # run swarm container to join the party if token is defined
+  - name: join the swarm (if swarm_token is defined)
+    shell: "docker run --restart=always -d swarm join --addr={{ ansible_default_ipv4.address }}:2375 token://{{ swarm_token }}"
+    when: swarm_token is defined
 
   handlers:
     - name: restart docker
