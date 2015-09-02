@@ -1,0 +1,11 @@
+[Unit]
+Description=Consul
+Wants=network.target network-online.target syslog.target
+After=network.target network-online.target syslog.target
+
+[Service]
+ExecStart=/usr/local/bin/consul agent -ui-dir /usr/local/consul-ui -config-dir /etc/consul.d/ >/tmp/consul.log 2>&1 &
+Restart=on-abort
+
+[Install]
+WantedBy=multi-user.target

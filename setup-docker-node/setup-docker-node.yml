@@ -21,9 +21,12 @@
       - etcd
       - python-netaddr
       - docker
+      - lsof
+      - telnet
+      - curl
 
   - name: config docker
-    copy: src=etc/sysconfig/docker dest=/etc/sysconfig/docker force=yes
+    copy: src=files/etc/sysconfig/docker dest=/etc/sysconfig/docker force=yes
     notify:
     - restart docker
 
@@ -31,15 +34,28 @@
     service: name=docker enabled=yes
 
   # the following steps are for test systems, consider tighter security for production use
-  - name: punch a hole in firewalld for port 2375
-    shell: firewall-cmd --zone=public --add-port=2375/tcp --permanent
+  - name: Trust main if
+    lineinfile: dest=/etc/sysconfig/network-scripts/ifcfg-eno16777736 line="ZONE=trusted" state=present
+  - name: punch a hole in public zone for port 2375
+    #shell: firewall-cmd --zone=public --add-port=2375/tcp --permanent
+    firewalld: zone=public port=2375/tcp permanent=true state=enabled
   - name: disable selinux
     selinux: state=disabled
 
-  # run swarm container to join the party if token is defined
+  # run swarm container to join the party if token is defined - TODO: register nodes with consul
   - name: join the swarm (if swarm_token is defined)
     shell: "docker run --restart=always -d swarm join --addr={{ ansible_default_ipv4.address }}:2375 token://{{ swarm_token }}"
     when: swarm_token is defined
+
+  # Consul
+  - name: Copy consul binary (v0.5.2)
+    copy: src=files/usr/local/bin/consul dest=/usr/local/bin/consul owner=root group=root mode=0750 follow=yes
+
+  - name: Copy consul web-ui
+    copy: src=files/usr/local/consul-ui dest=/usr/local/ owner=root group=root mode=0750
+
+  - name: Copy systemd service unit for consul-agent
+    copy: src=files/etc/systemd/system/consul-agent.service dest=/etc/systemd/system/consul-agent.service owner=root group=root mode=0750
 
   handlers:
     - name: restart docker
