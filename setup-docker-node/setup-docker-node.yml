@@ -4,6 +4,8 @@
   vars:
     docker_port: 2375
     #swarm_token: "YOUR_SWARM_TOKEN"
+    #consul_datacenter_name: "YOU CONSUL DATACENTER NAME"
+    #consul_server_name: "YOUR CONSUL SERVER"
   remote_user: root
 
   tasks:
@@ -56,6 +58,9 @@
 
   - name: Copy systemd service unit for consul-agent
     copy: src=files/etc/systemd/system/consul-agent.service dest=/etc/systemd/system/consul-agent.service owner=root group=root mode=0750
+
+  - name: Copy consul agent config
+    template: src=templates/etc/consul.d/consul.json.j2 dest=/etc/consul.d/consul.json mode=0644
 
   handlers:
     - name: restart docker

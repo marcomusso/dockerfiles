@@ -1,0 +1,8 @@
+{
+  "datacenter": "{{ consul_datacenter_name }}",
+  "data_dir": "/var/run/consul",
+  "log_level": "INFO",
+  "server": false,
+  "enable_syslog": true,
+  "start_join": [ "{{ consul_server_name }}" ]
+}
