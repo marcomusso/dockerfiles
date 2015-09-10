@@ -6,6 +6,7 @@
     #swarm_token: "YOUR_SWARM_TOKEN"
     #consul_datacenter_name: "YOU CONSUL DATACENTER NAME"
     #consul_server_name: "YOUR CONSUL SERVER"
+    update_pkgs: false
   remote_user: root
 
   tasks:
@@ -15,25 +16,39 @@
 
   - name: yum update
     yum: name=* state=latest
+    when: update_pkgs
+    tags:
+      - pkgs
+
+  - name: Add EPEL
+    yum: name=https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm state=present
+    tags:
+      - pkgs
 
   - name: Install some useful packages
     yum: pkg={{ item }} state=latest
     with_items:
       - git
-      - etcd
       - python-netaddr
       - docker
-      - lsof
-      - telnet
-      - curl
+      - nagios-plugins* # used with consul
+      - etcd            # optional, switched to consul
+      - lsof            # optional
+      - telnet          # optional
+      - curl            # optional
+      - mlocate         # optional
+      - tree            # optional
+      - htop            # EPEL, optional
+    tags:
+      - pkgs
+
+  - name: enable docker at boot
+    service: name=docker enabled=yes
 
   - name: config docker
     copy: src=files/etc/sysconfig/docker dest=/etc/sysconfig/docker force=yes
     notify:
     - restart docker
-
-  - name: enable docker at boot
-    service: name=docker enabled=yes
 
   # the following steps are for test systems, consider tighter security for production use
   - name: Trust main if
@@ -48,19 +63,39 @@
   - name: join the swarm (if swarm_token is defined)
     shell: "docker run --restart=always -d swarm join --addr={{ ansible_default_ipv4.address }}:2375 token://{{ swarm_token }}"
     when: swarm_token is defined
+    tags:
+      - run_swarm
 
   # Consul
   - name: Copy consul binary (v0.5.2)
     copy: src=files/usr/local/bin/consul dest=/usr/local/bin/consul owner=root group=root mode=0750 follow=yes
+    tags:
+      - copy_consul_binary
 
   - name: Copy consul web-ui
     copy: src=files/usr/local/consul-ui dest=/usr/local/ owner=root group=root mode=0750
+    tags:
+      - copy_consul_ui
 
   - name: Copy systemd service unit for consul-agent
     copy: src=files/etc/systemd/system/consul-agent.service dest=/etc/systemd/system/consul-agent.service owner=root group=root mode=0750
+    tags:
+      - systemd_consul
 
   - name: Copy consul agent config
     template: src=templates/etc/consul.d/consul.json.j2 dest=/etc/consul.d/consul.json mode=0644
+    tags:
+      - config_consul
+
+  - name: Run consul agent
+    service: name=consul-agent state=started enabled=yes
+    tags:
+      - run_consul
+
+  - name: Run the registrator
+    shell: docker run -d --restart=always --name=registrator --net=host --volume=/var/run/docker.sock:/tmp/docker.sock gliderlabs/registrator:latest consul://localhost:8500
+    tags:
+      - run_registrator
 
   handlers:
     - name: restart docker
