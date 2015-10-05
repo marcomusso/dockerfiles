@@ -1,10 +1,10 @@
 [Unit]
 Description=Consul
-Wants=network.target network-online.target syslog.target
-After=network.target network-online.target syslog.target
+Requires=network.target network-online.target rsyslog.service
+#After=network.target network-online.target rsyslog.service
 
 [Service]
-ExecStart=/usr/local/bin/consul agent -ui-dir /usr/local/consul-ui -config-dir /etc/consul.d/ >/tmp/consul.log 2>&1 &
+ExecStart=/usr/local/bin/consul agent -config-dir /etc/consul.d/ >/tmp/consul.log 2>&1 &
 Restart=on-abort
 
 [Install]
